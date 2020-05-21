@@ -1,14 +1,14 @@
 #Requires -RunAsAdministrator
 
+[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
+
 $documents = [Environment]::GetFolderPath('mydocuments') 
 $cheatpath = Join-Path $documents "/cheat"
 $configpath = Join-Path $cheatpath "/.config"
 $sheetpath = Join-Path $cheatpath "/cheetsheets"
 $communitypath = Join-Path $sheetpath "/community"
 $securitypath = Join-Path $sheetpath "/security"
-$classpath = Join-Path $psscriptroot "/cheatsheets"
 $personalpath = Join-Path $sheetpath "/personal"
-$cheat = Join-Path $psscriptroot "/cheat.exe"
 $conffile = Join-Path $configpath "/conf.yml"
 
 #Check for Cheat folders and create if they do not exist.
@@ -42,7 +42,7 @@ invoke-restmethod -uri https://api.github.com/repos/cheat/cheat/releases/latest 
           {
               $global:lastpercentage = $percentage
               # stackoverflow.com/questions/3896258
-              Write-Host -NoNewline "`r$percentage%"
+              Write-Host -NoNewline "`r Downloading... $percentage%"
           }
       } > $null
 
@@ -60,15 +60,15 @@ Expand-Archive -path "$cheatpath\$of" -destinationpath "$cheatpath\extracted"
 Get-ChildItem "$cheatpath\extracted\" -recurse | `
   where {$_.name -eq 'cheat-windows-amd64.exe'} | `
   select -expandproperty fullname | `
-  foreach-object { move-item $_ -Destination "$cheatpath\" }
+  foreach-object { move-item $_ -Destination "$cheatpath\cheat.exe" }
 
 #cleanup
 Remove-Item "$cheatpath\$of"
-Get-ChildItem $cheatpath -Directory | Remove-Item -Force
+Get-Item "$cheatpath\extracted" | Remove-Item -Force -recurse 
 
 git clone https://github.com/cheat/cheatsheets $communitypath
 git clone https://github.com/andrewjkerr/security-cheatsheets $securitypath
-
+copy-item "$PSScriptRoot\cheatsheets\*" $personalpath
 
 $cheatconfig = @"
 ---
@@ -153,3 +153,5 @@ $newpath = '{0}{1}{2}' -f $pathobject,[IO.Path]::PathSeparator,$cheatpath
 
 [Environment]::SetEnvironmentVariable('Path', $newpath, [System.EnvironmentVariableTarget]::Machine)
 [Environment]::SetEnvironmentVariable('CHEAT_CONFIG_PATH', $conffile, [System.EnvironmentVariableTarget]::Machine)
+[Environment]::SetEnvironmentVariable('Path', $([System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")))
+[Environment]::SetEnvironmentVariable('CHEAT_CONFIG_PATH', $conffile)
