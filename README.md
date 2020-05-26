@@ -1,2 +1,2 @@
 # cheat-configs
-Personal Repo for the Cheat tool and it's configs.
+Personal Repo for a Cheat tool installer and it's configurations.

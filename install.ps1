@@ -5,7 +5,7 @@
 $documents = [Environment]::GetFolderPath('mydocuments') 
 $cheatpath = Join-Path $documents "/cheat"
 $configpath = Join-Path $cheatpath "/.config"
-$sheetpath = Join-Path $cheatpath "/cheetsheets"
+$sheetpath = Join-Path $cheatpath "/cheatsheets"
 $communitypath = Join-Path $sheetpath "/community"
 $securitypath = Join-Path $sheetpath "/security"
 $personalpath = Join-Path $sheetpath "/personal"
