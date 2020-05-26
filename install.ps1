@@ -2,6 +2,13 @@
 
 [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
 
+#CheatSheet Locations
+
+$CheatToolCheatSheets = "https://github.com/cheat/cheatsheets"
+$InfoSecCheatSheets = "https://github.com/andrewjkerr/security-cheatsheets"
+$PersonalCheatSheets = "https://github.com/0xW1sKy/cheatsheets"
+
+
 $documents = [Environment]::GetFolderPath('mydocuments') 
 $cheatpath = Join-Path $documents "/cheat"
 $configpath = Join-Path $cheatpath "/.config"
@@ -70,7 +77,7 @@ Remove-Item "$cheatpath\$of"
 Get-Item "$cheatpath\extracted" | Remove-Item -Force -recurse 
 $communitytest = get-childitem $communitypath
 $securitytest = get-childitem $securitypath
-
+$personaltest = get-childitem $personalpath
 
 if($communitytest.count -gt 1){
     try{
@@ -84,11 +91,11 @@ if($communitytest.count -gt 1){
         catch{ 
             write-host "Unable to remove existing items. Moving them..."
             move-item $communitypath "$communitypath.old"
-            git clone https://github.com/cheat/cheatsheets $communitypath
+            git clone $CheatToolCheatSheets $communitypath
         }
     }
 }else{
-    git clone https://github.com/cheat/cheatsheets $communitypath
+    git clone $CheatToolCheatSheets $communitypath
 }
 
 if($securitytest.count -gt 1){
@@ -103,14 +110,31 @@ if($securitytest.count -gt 1){
         catch{ 
             write-host "Unable to remove existing items. Moving them..."
             move-item $securitypath "$securitypath.old"
-            git clone https://github.com/andrewjkerr/security-cheatsheets $securitypath
+            git clone $InfoSecCheatSheets $securitypath
         }
     }
 }else{
-    git clone https://github.com/andrewjkerr/security-cheatsheets $securitypath
+    git clone $InfoSecCheatSheets $securitypath
 }
 
-copy-item "$PSScriptRoot\cheatsheets\*" $personalpath
+if($personaltest.count -gt 1){
+    try{
+        git -C $personalpath pull
+    }
+    catch { 
+        write-host "Unable to Update existing personal cheatsheets"
+        try{ 
+            $personaltest |ForEach-Object{ remove-item $_ -recurse -force}
+        }
+        catch{ 
+            write-host "Unable to remove existing items. Moving them..."
+            move-item $personalpath "$personalpath.old"
+            git clone $PersonalCheatSheets $personalpath
+        }
+    }
+}else{
+    git clone $PersonalCheatSheets $personalpath
+}
 
 $cheatconfig = @"
 ---
