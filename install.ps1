@@ -21,15 +21,15 @@ if(!(Test-Path $personalpath)){ New-Item -ItemType Directory -path $personalpath
 
 #Get Latest Release of Cheat and 'install'
 invoke-restmethod -uri https://api.github.com/repos/cheat/cheat/releases/latest | `
-  select -expandproperty assets | `
-  select browser_download_url | `
-  where {$_.browser_download_url -like "*.exe.zip"} | `
-  select -expandproperty browser_download_url |`
+  Select-Object -expandproperty assets | `
+  Select-Object browser_download_url | `
+  Where-Object {$_.browser_download_url -like "*.exe.zip"} | `
+  Select-Object -expandproperty browser_download_url |`
   foreach-object{ 
       $global:lastpercentage = -1
       $global:are = New-Object System.Threading.AutoResetEvent $false
       $uri = $_
-      $of = $_.split('/') | select -last 1
+      $of = $_.split('/') | Select-Object -last 1
       
       # web client
       # (!) output is buffered to disk -> great speed
@@ -57,17 +57,59 @@ invoke-restmethod -uri https://api.github.com/repos/cheat/cheat/releases/latest 
       while(!$global:are.WaitOne(500)) {}
       }
 Expand-Archive -path "$cheatpath\$of" -destinationpath "$cheatpath\extracted"
+if(get-item "$cheatpath\cheat.exe"){
+  remove-item "$cheatpath\cheat.exe"
+}
 Get-ChildItem "$cheatpath\extracted\" -recurse | `
-  where {$_.name -eq 'cheat-windows-amd64.exe'} | `
-  select -expandproperty fullname | `
+  Where-Object {$_.name -eq 'cheat-windows-amd64.exe'} | `
+  Select-Object -expandproperty fullname | `
   foreach-object { move-item $_ -Destination "$cheatpath\cheat.exe" }
 
 #cleanup
 Remove-Item "$cheatpath\$of"
 Get-Item "$cheatpath\extracted" | Remove-Item -Force -recurse 
+$communitytest = get-childitem $communitypath
+$securitytest = get-childitem $securitypath
 
-git clone https://github.com/cheat/cheatsheets $communitypath
-git clone https://github.com/andrewjkerr/security-cheatsheets $securitypath
+
+if($communitytest.count -gt 1){
+    try{
+        git -C $communitypath pull
+    }
+    catch { 
+        write-host "Unable to Update existing community cheatsheets"
+        try{ 
+            $communitytest |ForEach-Object{ remove-item $_ -recurse -force}
+        }
+        catch{ 
+            write-host "Unable to remove existing items. Moving them..."
+            move-item $communitypath "$communitypath.old"
+            git clone https://github.com/cheat/cheatsheets $communitypath
+        }
+    }
+}else{
+    git clone https://github.com/cheat/cheatsheets $communitypath
+}
+
+if($securitytest.count -gt 1){
+    try{
+        git -C $securitypath pull
+    }
+    catch { 
+        write-host "Unable to Update existing security cheatsheets"
+        try{ 
+            $securitytest |ForEach-Object{ remove-item $_ -recurse -force}
+        }
+        catch{ 
+            write-host "Unable to remove existing items. Moving them..."
+            move-item $securitypath "$securitypath.old"
+            git clone https://github.com/andrewjkerr/security-cheatsheets $securitypath
+        }
+    }
+}else{
+    git clone https://github.com/andrewjkerr/security-cheatsheets $securitypath
+}
+
 copy-item "$PSScriptRoot\cheatsheets\*" $personalpath
 
 $cheatconfig = @"
